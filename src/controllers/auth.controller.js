@@ -1,7 +1,7 @@
 import { User, OTP } from '../models/index.js';
 import { emailService } from '../services/index.js';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+import { sendError, sendSuccess } from '../utils/response.js';
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -24,7 +24,7 @@ const authController = {
             // Check if user already exists
             const existingUser = await User.findOne({ email });
             if (existingUser) {
-                return res.status(400).json({ success: false, message: 'Email is already registered' });
+                return sendError(res, { statusCode: 400, message: 'Email is already registered' });
             }
 
             // Create new user
@@ -33,8 +33,8 @@ const authController = {
             // Generate token
             const token = generateToken(user._id);
 
-            res.status(201).json({
-                success: true,
+            return sendSuccess(res, {
+                statusCode: 201,
                 message: 'Account created successfully',
                 data: {
                     user: { id: user._id, username: user.username, email: user.email },
@@ -42,7 +42,7 @@ const authController = {
                 }
             });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     },
 
@@ -54,20 +54,19 @@ const authController = {
             // Find user
             const user = await User.findOne({ email });
             if (!user) {
-                return res.status(401).json({ success: false, message: 'Invalid email or password' });
+                return sendError(res, { statusCode: 401, message: 'Invalid email or password' });
             }
 
             // Check password
             const isMatch = await user.comparePassword(password);
             if (!isMatch) {
-                return res.status(401).json({ success: false, message: 'Invalid email or password' });
+                return sendError(res, { statusCode: 401, message: 'Invalid email or password' });
             }
 
             // Generate token
             const token = generateToken(user._id);
 
-            res.status(200).json({
-                success: true,
+            return sendSuccess(res, {
                 message: 'Logged in successfully',
                 data: {
                     user: { id: user._id, username: user.username, email: user.email },
@@ -75,7 +74,7 @@ const authController = {
                 }
             });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     },
 
@@ -86,7 +85,7 @@ const authController = {
 
             const user = await User.findOne({ email });
             if (!user) {
-                return res.status(404).json({ success: false, message: 'User not found with this email' });
+                return sendError(res, { statusCode: 404, message: 'User not found with this email' });
             }
 
             // Generate 4-digit OTP
@@ -105,15 +104,14 @@ const authController = {
             const emailSent = await emailService.sendOTP(email, otpCode);
             
             if (!emailSent) {
-                return res.status(500).json({ success: false, message: 'Error sending email. Please try again' });
+                return sendError(res, { message: 'Error sending email. Please try again' });
             }
 
-            res.status(200).json({
-                success: true,
+            return sendSuccess(res, {
                 message: 'OTP has been sent to your email'
             });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     },
 
@@ -125,17 +123,16 @@ const authController = {
             const otpRecord = await OTP.findOne({ email, otp });
             
             if (!otpRecord) {
-                return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+                return sendError(res, { statusCode: 400, message: 'Invalid or expired OTP' });
             }
 
             // OTP is valid. In a real flow, you might return a temporary token here to be used for the reset step.
             // For simplicity, we just confirm it's valid. The client should proceed to the next screen.
-            res.status(200).json({
-                success: true,
+            return sendSuccess(res, {
                 message: 'OTP verified successfully. You can now reset your password.'
             });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     },
 
@@ -147,13 +144,13 @@ const authController = {
             // Verify OTP again just to be safe
             const otpRecord = await OTP.findOne({ email, otp });
             if (!otpRecord) {
-                return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+                return sendError(res, { statusCode: 400, message: 'Invalid or expired OTP' });
             }
 
             // Find user
             const user = await User.findOne({ email });
             if (!user) {
-                return res.status(404).json({ success: false, message: 'User not found' });
+                return sendError(res, { statusCode: 404, message: 'User not found' });
             }
 
             // Update password (will be hashed by pre-save hook)
@@ -163,12 +160,11 @@ const authController = {
             // Delete used OTP
             await OTP.deleteOne({ _id: otpRecord._id });
 
-            res.status(200).json({
-                success: true,
+            return sendSuccess(res, {
                 message: 'Password changed successfully'
             });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     }
 };

@@ -2,6 +2,7 @@ import express from 'express';
 const router = express.Router();
 import { authController } from '../controllers/index.js';
 import { authMiddleware } from '../middlewares/index.js';
+import { sendSuccess } from '../utils/response.js';
 
 // Public routes
 router.post('/signup', authController.signup);
@@ -12,11 +13,10 @@ router.post('/reset-password', authController.resetPassword);
 
 // Protected routes example
 router.get('/me', authMiddleware, (req, res) => {
-    res.json({
-        success: true,
+    return sendSuccess(res, {
+        message: 'You have accessed a protected route',
         data: {
-            userId: req.user.id,
-            message: 'You have accessed a protected route'
+            userId: req.user.id
         }
     });
 });
