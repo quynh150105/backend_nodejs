@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { authRoutes, adminRoutes } from './routes/index.js';
+import { sendError, sendSuccess } from './utils/response.js';
 
 const app = express();
 
@@ -9,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Advanced Request & Error Logger
+// Advanced request and error logger
 app.use((req, res, next) => {
   const start = Date.now();
   const originalJson = res.json;
@@ -17,26 +18,24 @@ app.use((req, res, next) => {
   res.json = function (body) {
     const duration = Date.now() - start;
     const isError = res.statusCode >= 400;
-    
     let logMsg = `[${new Date().toLocaleString()}] ${req.method} ${req.url} | Status: ${res.statusCode} | ${duration}ms`;
-    
-    // Nêú là lỗi, in luôn chi tiết lỗi ra Terminal
+
     if (isError) {
-      logMsg += ` | ❌ Lỗi: ${body.message || 'Không rõ'}`;
+      logMsg += ` | Error: ${body.message || 'Unknown error'}`;
+
       if (req.body && Object.keys(req.body).length > 0) {
-        // Dấu đi password trước khi in req.body
         const safeBody = { ...req.body };
         if (safeBody.password) safeBody.password = '***';
-        logMsg += ` | Dữ liệu gửi lên: ${JSON.stringify(safeBody)}`;
+        logMsg += ` | Body: ${JSON.stringify(safeBody)}`;
       }
     } else {
-      logMsg += ` | ✅ Thành công`;
+      logMsg += ' | Success';
     }
 
     console.log(logMsg);
     return originalJson.call(this, body);
   };
-  
+
   next();
 });
 
@@ -46,18 +45,18 @@ app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ message: '🚀 Auth API is running!' });
+  return sendSuccess(res, { message: 'Auth API is running' });
 });
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+  return sendError(res, { statusCode: 404, message: 'Route not found' });
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ success: false, message: 'Internal server error' });
+  return sendError(res, { message: 'Internal server error' });
 });
 
 export default app;

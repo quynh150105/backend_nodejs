@@ -1,5 +1,6 @@
 import { User } from '../models/index.js';
 import bcrypt from 'bcryptjs';
+import { sendError, sendSuccess } from '../utils/response.js';
 
 const adminController = {
     // Get all users
@@ -7,9 +8,13 @@ const adminController = {
         try {
             // Excluding password and role (or you can include role)
             const users = await User.find().select('-password');
-            res.status(200).json({ success: true, count: users.length, data: users });
+            return sendSuccess(res, {
+                message: 'Users retrieved successfully',
+                data: users,
+                meta: { count: users.length }
+            });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     },
 
@@ -18,11 +23,11 @@ const adminController = {
         try {
             const user = await User.findById(req.params.id).select('-password');
             if (!user) {
-                return res.status(404).json({ success: false, message: 'User not found' });
+                return sendError(res, { statusCode: 404, message: 'User not found' });
             }
-            res.status(200).json({ success: true, data: user });
+            return sendSuccess(res, { message: 'User retrieved successfully', data: user });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     },
 
@@ -33,7 +38,7 @@ const adminController = {
 
             const existingUser = await User.findOne({ email });
             if (existingUser) {
-                return res.status(400).json({ success: false, message: 'Email is already registered' });
+                return sendError(res, { statusCode: 400, message: 'Email is already registered' });
             }
 
             const user = await User.create({ username, email, password, role: role || 'user' });
@@ -41,9 +46,13 @@ const adminController = {
             // Don't send back password
             user.password = undefined;
 
-            res.status(201).json({ success: true, message: 'User created successfully', data: user });
+            return sendSuccess(res, {
+                statusCode: 201,
+                message: 'User created successfully',
+                data: user
+            });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     },
 
@@ -68,12 +77,12 @@ const adminController = {
             }).select('-password');
 
             if (!user) {
-                return res.status(404).json({ success: false, message: 'User not found' });
+                return sendError(res, { statusCode: 404, message: 'User not found' });
             }
 
-            res.status(200).json({ success: true, message: 'User updated successfully', data: user });
+            return sendSuccess(res, { message: 'User updated successfully', data: user });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     },
 
@@ -82,11 +91,11 @@ const adminController = {
         try {
             const user = await User.findByIdAndDelete(req.params.id);
             if (!user) {
-                return res.status(404).json({ success: false, message: 'User not found' });
+                return sendError(res, { statusCode: 404, message: 'User not found' });
             }
-            res.status(200).json({ success: true, message: 'User deleted successfully' });
+            return sendSuccess(res, { message: 'User deleted successfully' });
         } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
+            return sendError(res, { message: error.message });
         }
     }
 };
