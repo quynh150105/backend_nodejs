@@ -1,5 +1,4 @@
 import { User, OTP } from '../models/index.js';
-import { emailService } from '../services/index.js';
 import jwt from 'jsonwebtoken';
 import { sendError, sendSuccess } from '../utils/response.js';
 
@@ -78,7 +77,7 @@ const authController = {
         }
     },
 
-    // 3. Forgot Password - Generate & Send OTP
+    // 3. Forgot Password - Generate OTP
     forgotPassword: async (req, res) => {
         try {
             const { email } = req.body;
@@ -100,15 +99,11 @@ const authController = {
                 otp: otpCode
             });
 
-            // Send Email
-            const emailSent = await emailService.sendOTP(email, otpCode);
-            
-            if (!emailSent) {
-                return sendError(res, { message: 'Error sending email. Please try again' });
-            }
-
             return sendSuccess(res, {
-                message: 'OTP has been sent to your email'
+                message: 'OTP generated successfully',
+                data: {
+                    otp: otpCode
+                }
             });
         } catch (error) {
             return sendError(res, { message: error.message });
